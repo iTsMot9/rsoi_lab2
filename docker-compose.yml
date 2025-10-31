@@ -11,7 +11,7 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./postgres:/docker-entrypoint-initdb.d 
-      - ./v3/schema-3.sql:/schemas/schema.sql
+      - ./v3/schema-3.sql:/schemas/schema-3.sql
     ports:
       - "5432:5432"
 

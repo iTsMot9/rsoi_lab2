@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
 import psycopg2
 
 app = FastAPI()
@@ -12,7 +13,7 @@ DB_CONFIG = {
 
 @app.get("/manage/health")
 def health():
-    return {"status": "OK"}
+    return JSONResponse(content={"status": "OK"})
 
 @app.get("/api/v1/cars")
 def get_cars(page: int = Query(0), size: int = Query(10), showAll: bool = Query(False)):
@@ -32,7 +33,7 @@ def get_cars(page: int = Query(0), size: int = Query(10), showAll: bool = Query(
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        return [
+        cars = [
             {
                 "carUid": str(r[0]),
                 "brand": r[1],
@@ -45,6 +46,7 @@ def get_cars(page: int = Query(0), size: int = Query(10), showAll: bool = Query(
             }
             for r in rows
         ]
+        return JSONResponse(content=cars)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -59,7 +61,7 @@ def reserve_car(car_uid: str):
         conn.commit()
         cur.close()
         conn.close()
-        return {"status": "reserved"}
+        return JSONResponse(content={"status": "reserved"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -74,6 +76,6 @@ def release_car(car_uid: str):
         conn.commit()
         cur.close()
         conn.close()
-        return {"status": "released"}
+        return JSONResponse(content={"status": "released"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Header
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import psycopg2
 import uuid
@@ -14,12 +15,13 @@ DB_CONFIG = {
 
 @app.get("/manage/health")
 def health():
-    return {"status": "OK"}
+    return JSONResponse(content={"status": "OK"})
 
 class RentalCreateRequest(BaseModel):
     carUid: str
     dateFrom: str
     dateTo: str
+    paymentUid: str
 
 @app.post("/api/v1/rental")
 def create_rental(
@@ -33,11 +35,11 @@ def create_rental(
         cur.execute("""
             INSERT INTO rental (rental_uid, username, payment_uid, car_uid, date_from, date_to, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (rental_uid, username, "temp", req.carUid, req.dateFrom, req.dateTo, "IN_PROGRESS"))
+        """, (rental_uid, username, req.paymentUid, req.carUid, req.dateFrom, req.dateTo, "IN_PROGRESS"))
         conn.commit()
         cur.close()
         conn.close()
-        return {"rentalUid": rental_uid}
+        return JSONResponse(content={"rentalUid": rental_uid})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -46,11 +48,14 @@ def get_user_rentals(username: str = Header(..., alias="X-User-Name")):
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
-        cur.execute("SELECT rental_uid, payment_uid, car_uid, date_from, date_to, status FROM rental WHERE username = %s", (username,))
+        cur.execute("""
+            SELECT rental_uid, payment_uid, car_uid, date_from, date_to, status
+            FROM rental WHERE username = %s
+        """, (username,))
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        return [
+        return JSONResponse(content=[
             {
                 "rentalUid": str(r[0]),
                 "paymentUid": str(r[1]),
@@ -60,7 +65,7 @@ def get_user_rentals(username: str = Header(..., alias="X-User-Name")):
                 "status": r[5]
             }
             for r in rows
-        ]
+        ])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -69,20 +74,23 @@ def get_rental(rental_uid: str, username: str = Header(..., alias="X-User-Name")
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
-        cur.execute("SELECT rental_uid, payment_uid, car_uid, date_from, date_to, status FROM rental WHERE rental_uid = %s AND username = %s", (rental_uid, username))
+        cur.execute("""
+            SELECT rental_uid, payment_uid, car_uid, date_from, date_to, status
+            FROM rental WHERE rental_uid = %s AND username = %s
+        """, (rental_uid, username))
         row = cur.fetchone()
         cur.close()
         conn.close()
         if not row:
             raise HTTPException(status_code=404, detail="Rental not found or access denied")
-        return {
+        return JSONResponse(content={
             "rentalUid": str(row[0]),
             "paymentUid": str(row[1]),
             "carUid": str(row[2]),
             "dateFrom": row[3].isoformat(),
             "dateTo": row[4].isoformat(),
             "status": row[5]
-        }
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -97,7 +105,7 @@ def finish_rental(rental_uid: str, username: str = Header(..., alias="X-User-Nam
         conn.commit()
         cur.close()
         conn.close()
-        return {"status": "FINISHED"}
+        return JSONResponse(content={"status": "FINISHED"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -112,6 +120,6 @@ def cancel_rental(rental_uid: str, username: str = Header(..., alias="X-User-Nam
         conn.commit()
         cur.close()
         conn.close()
-        return {"status": "CANCELED"}
+        return JSONResponse(content={"status": "CANCELED"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

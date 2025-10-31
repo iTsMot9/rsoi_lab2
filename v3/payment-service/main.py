@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import psycopg2
 import uuid
@@ -14,7 +15,7 @@ DB_CONFIG = {
 
 @app.get("/manage/health")
 def health():
-    return {"status": "OK"}
+    return JSONResponse(content={"status": "OK"})
 
 class CreatePaymentRequest(BaseModel):
     price: int
@@ -32,7 +33,7 @@ def create_payment(req: CreatePaymentRequest):
         conn.commit()
         cur.close()
         conn.close()
-        return {"paymentUid": payment_uid, "status": "PAID", "price": req.price}
+        return JSONResponse(content={"paymentUid": payment_uid, "status": "PAID", "price": req.price})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -47,7 +48,7 @@ def get_payment(payment_uid: str):
         conn.close()
         if not row:
             raise HTTPException(status_code=404, detail="Payment not found")
-        return {"paymentUid": str(row[0]), "status": row[1], "price": row[2]}
+        return JSONResponse(content={"paymentUid": str(row[0]), "status": row[1], "price": row[2]})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -62,6 +63,6 @@ def cancel_payment(payment_uid: str):
         conn.commit()
         cur.close()
         conn.close()
-        return {"status": "CANCELED"}
+        return JSONResponse(content={"status": "CANCELED"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
