@@ -5,12 +5,12 @@ services:
     container_name: postgres
     restart: on-failure
     environment:
-      POSTGRES_USER: program
-      POSTGRES_PASSWORD: test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./scripts/20-create-schemas.sh:/docker-entrypoint-initdb.d/20-create-schemas.sh
+      - ./postgres:/docker-entrypoint-initdb.d 
       - ./v3/schema-3.sql:/schemas/schema.sql
     ports:
       - "5432:5432"
